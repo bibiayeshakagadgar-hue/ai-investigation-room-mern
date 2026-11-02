@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import './App.css'
 
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+
 async function api(path, options = {}) {
-  const response = await fetch(path, {
+  const url = `${API_BASE_URL}${path}`
+
+  const response = await fetch(url, {
     credentials: 'include',
     ...options,
     headers: {
@@ -10,11 +15,18 @@ async function api(path, options = {}) {
       ...options.headers,
     },
   })
+
   if (response.status === 204) return null
+
   const payload = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(payload.error || 'The request could not be completed.')
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'The request could not be completed.')
+  }
+
   return payload
 }
+
 
 function App() {
   const [selectedCaseId, setSelectedCaseId] = useState(() => {
