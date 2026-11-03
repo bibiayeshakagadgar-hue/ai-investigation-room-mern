@@ -1,5 +1,6 @@
 const path = require("node:path");
 const express = require("express");
+const cors = require("cors");
 const helmet = require("helmet");
 const session = require("express-session");
 const mongoose = require("mongoose");
@@ -15,7 +16,7 @@ const { caseRouter } = require("./routes/cases");
 const cookieName = "investigation.sid";
 const cookieOptions = {
   httpOnly: true,
-  sameSite: "strict",
+  sameSite: "none",
   secure: process.env.NODE_ENV === "production",
   path: "/",
 };
@@ -36,7 +37,17 @@ function createApp({
   }
 
   const app = express();
-  app.disable("x-powered-by");
+
+const allowedOrigins = [
+  "https://ai-investigation-room.vercel.app",
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
+app.disable("x-powered-by");
   if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
   app.use(helmet());
   app.use(express.json({ limit: "16kb" }));
