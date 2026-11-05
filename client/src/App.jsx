@@ -49,6 +49,11 @@ function App() {
   const [summary, setSummary] = useState('')
   const [creating, setCreating] = useState(false)
   const [selectedCase, setSelectedCase] = useState(null)
+  const [editingCase, setEditingCase] = useState(false)
+  const [editCaseTitle, setEditCaseTitle] = useState('')
+  const [editCaseSummary, setEditCaseSummary] = useState('')
+  const [caseSaving, setCaseSaving] = useState(false)
+  const [editCaseError, setEditCaseError] = useState('') 
   const [selectedCaseError, setSelectedCaseError] = useState('')
   const [clues, setClues] = useState([])
   const [cluesBusy, setCluesBusy] = useState(false)
@@ -138,6 +143,49 @@ function App() {
       setCasesBusy(false)
     }
   }, [])
+
+    const startEditingCase = (caseItem) => {
+    setEditCaseTitle(caseItem.title || '')
+    setEditCaseSummary(caseItem.summary || '')
+    setEditCaseError('')
+    setEditingCase(true)
+  }
+
+  const cancelEditingCase = () => {
+    setEditingCase(false)
+    setEditCaseError('')
+  }
+
+  const saveCase = async () => {
+    if (!selectedCase) return
+
+    setCaseSaving(true)
+    setEditCaseError('')
+
+    try {
+      const result = await api(`/api/cases/${selectedCase._id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: editCaseTitle,
+          summary: editCaseSummary,
+        }),
+      })
+
+      setSelectedCase(result.case)
+      setCases((currentCases) =>
+        currentCases.map((item) =>
+          item._id === result.case._id ? result.case : item
+        )
+      )
+
+      setEditingCase(false)
+      setNotice('Case updated successfully.')
+    } catch (error) {
+      setEditCaseError(error.message)
+    } finally {
+      setCaseSaving(false)
+    }
+  }
 
   useEffect(() => {
     api('/api/auth/me')
@@ -531,14 +579,81 @@ function App() {
               <div><span className="eyebrow">INVESTIGATION OVERVIEW</span><h1>{selectedCase.title}</h1><p>{selectedCase.summary || 'No summary added.'}</p></div>
               <span className={`case-status status-${selectedCase.status}`}>{selectedCase.status.replace('_', ' ')}</span>
             </div>
-            <section className="case-panel overview-panel">
-              <div className="panel-heading"><div><span className="eyebrow">CASE DETAILS</span><h2>Overview</h2></div></div>
-              <dl className="overview-grid">
-                <div><dt>Priority</dt><dd>{selectedCase.priority}</dd></div>
-                <div><dt>Created</dt><dd>{new Date(selectedCase.createdAt).toLocaleDateString()}</dd></div>
-                <div><dt>Last updated</dt><dd>{new Date(selectedCase.updatedAt).toLocaleDateString()}</dd></div>
-              </dl>
-            </section>
+           <section className="case-panel overview-panel">
+  <div className="panel-heading">
+    <div>
+      <span className="eyebrow">CASE DETAILS</span>
+      <h2>Overview</h2>
+    </div>
+
+    {!editingCase && (
+      <button
+        className="quiet-button"
+        type="button"
+        onClick={() => startEditingCase(selectedCase)}
+      >
+        Edit case
+      </button>
+    )}
+  </div>
+
+  {editingCase ? (
+    <form
+      className="case-form"
+      onSubmit={(event) => {
+        event.preventDefault()
+        saveCase()
+      }}
+    >
+      <label htmlFor="edit-case-title">Case title</label>
+      <input
+        id="edit-case-title"
+        value={editCaseTitle}
+        onChange={(event) => setEditCaseTitle(event.target.value)}
+        maxLength={160}
+        required
+      />
+
+      <label htmlFor="edit-case-summary">Summary</label>
+      <textarea
+        id="edit-case-summary"
+        value={editCaseSummary}
+        onChange={(event) => setEditCaseSummary(event.target.value)}
+        maxLength={5000}
+        rows={3}
+      />
+
+      {editCaseError && (
+        <p className="error-message" role="alert">{editCaseError}</p>
+      )}
+
+      <div className="clue-actions">
+        <button
+          className="primary-button"
+          type="submit"
+          disabled={caseSaving}
+        >
+          {caseSaving ? 'Saving…' : 'Save Changes'}
+        </button>
+
+        <button
+          className="quiet-button"
+          type="button"
+          onClick={cancelEditingCase}
+          disabled={caseSaving}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  ) : (
+    <dl className="overview-grid">
+      <div><dt>Priority</dt><dd>{selectedCase.priority}</dd></div>
+      <div><dt>Created</dt><dd>{new Date(selectedCase.createdAt).toLocaleDateString()}</dd></div>
+      <div><dt>Last updated</dt><dd>{new Date(selectedCase.updatedAt).toLocaleDateString()}</dd></div>
+    </dl>
+  )}
+</section>
             <section className="case-panel case-tools-panel">
               <div><span className="eyebrow">CASE MANAGEMENT</span><h2>Case tools</h2><p>Archive this case when it is no longer active. Archived cases are preserved.</p></div>
               <button className="archive-detail-button" type="button" onClick={() => archiveCase(selectedCase._id)}>Archive case</button>

@@ -79,7 +79,7 @@ function authRouter({ UserModel, bcryptImpl = bcrypt }) {
       if (request.session) await destroy(request.session);
       response.clearCookie("investigation.sid", {
         httpOnly: true,
-        sameSite: "strict",
+        sameSite: "none",
         secure: process.env.NODE_ENV === "production",
         path: "/",
       });
