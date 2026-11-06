@@ -27,6 +27,7 @@ const cookieOptions = {
 
 const allowedOrigins = [
   "https://ai-investigation-room-jet.vercel.app",
+  "http://localhost:5173",
 ];
 
 function createApp({
